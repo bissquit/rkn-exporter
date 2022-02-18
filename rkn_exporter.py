@@ -6,7 +6,10 @@ import logging
 from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
 from handler import resolve_dns_name, \
-                    return_domain_metrics
+                    check_if_ip_in_subnet, \
+                    return_domain_metrics, \
+                    read_file_to_list, \
+                    normalize_domains
 
 data = ''
 
@@ -67,16 +70,18 @@ class Requestor:
 
     async def handler(self):
         global data
+        domains_set = normalize_domains(read_file_to_list('/tmp/domains'))
+        blocked_subnets_set = {'192.168.0.0/20', '94.100.0.0/16'}
         while True:
-            blocked_subnets_list = ['192.168.0.0/20', '94.100.0.0/16']
-            dns_name = 'mail.ru'
-            data = return_domain_metrics(dns_name=dns_name,
-                                         ips_list= await resolve_dns_name(dns_name),
-                                         blocked_subnets_list=blocked_subnets_list)
-
+            metrics = ''
+            for domain in domains_set:
+                metrics += return_domain_metrics(dns_name=domain,
+                                                 ips_list= await resolve_dns_name(domain),
+                                                 blocked_subnets_set=blocked_subnets_set)
+            data = metrics
             # you don't need to set loop explicitly in avaitable objects because of deprecation warning:
             #   DeprecationWarning: The loop argument is deprecated since
-            #   Python 3.8,and scheduled for removal in Python 3.10.
+            #   Python 3.8, and scheduled for removal in Python 3.10.
             #
             # Read more at: https://stackoverflow.com/a/60315290
             await asyncio.sleep(60)
