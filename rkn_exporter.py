@@ -5,11 +5,13 @@ import logging
 
 from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
+from dns.resolver import Resolver
 from handler import resolve_dns_name, \
                     check_if_ip_in_subnet, \
                     return_domain_metrics, \
                     read_file_to_list, \
-                    normalize_domains
+                    normalize_domains, \
+                    return_metrics, initialize_resolver
 
 data = ''
 
@@ -44,7 +46,7 @@ class Component:
                  loop=asyncio.get_event_loop()):
         self.name = name
         self.loop = loop
-        self.io_pool_exc = ThreadPoolExecutor(max_workers=10)
+        # self.io_pool_exc = ThreadPoolExecutor(max_workers=10)
 
     async def start(self):
         # Server
@@ -71,14 +73,25 @@ class Requestor:
     async def handler(self):
         global data
         domains_set = normalize_domains(read_file_to_list('/tmp/domains'))
-        blocked_subnets_set = {'192.168.0.0/20', '94.100.0.0/16'}
+        blocked_subnets_set = set(read_file_to_list('/tmp/blocked_subnets'))
+        resolver = initialize_resolver()
+        queue = asyncio.Queue(maxsize=len(domains_set))
+
         while True:
-            metrics = ''
-            for domain in domains_set:
-                metrics += return_domain_metrics(dns_name=domain,
-                                                 ips_list= await resolve_dns_name(domain),
-                                                 blocked_subnets_set=blocked_subnets_set)
-            data = metrics
+            threads_count = 5
+            executor = ThreadPoolExecutor(max_workers=threads_count)
+            # you should pass blocking function into executor or start additional
+            # event loop inside that function each time it called if you want async behaviour
+            #
+            # _ is a "throwaway" variable name
+            futures = [
+                self.loop.run_in_executor(executor, return_metrics, domains_set, blocked_subnets_set, resolver)
+                for _ in range(threads_count)
+            ]
+            raw_data = await asyncio.gather(*futures)
+            data = ''.join(raw_data)
+
+
             # you don't need to set loop explicitly in avaitable objects because of deprecation warning:
             #   DeprecationWarning: The loop argument is deprecated since
             #   Python 3.8, and scheduled for removal in Python 3.10.

@@ -1,8 +1,10 @@
 import io
 import pytest
+# from dns.resolver import Resolver
 
 from typing import Any, List
 from handler import resolve_dns_name, \
+                    resolve_dns_name_blocking, \
                     check_if_ip_in_subnet, \
                     return_domain_metrics, \
                     read_file_to_list, \
@@ -88,7 +90,6 @@ def test_read_file_to_list(mocker):
     file_data = read_file_to_list(path)
     assert file_data == ['line', 'another line']
 
-    file = io.StringIO(file_data_str)
     file_obj = MockOpenFile(path=path)
     mocker.patch("builtins.open", return_value=file_obj)
     file_data = read_file_to_list(path)
