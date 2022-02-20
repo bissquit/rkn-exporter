@@ -2,6 +2,7 @@ import os
 import argparse
 import asyncio
 import logging
+import janus
 
 from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
@@ -11,7 +12,7 @@ from handler import resolve_dns_name, \
                     return_domain_metrics, \
                     read_file_to_list, \
                     normalize_domains, \
-                    return_metrics, initialize_resolver
+                    return_metrics, initialize_resolver, fill_queue
 
 data = ''
 
@@ -46,7 +47,6 @@ class Component:
                  loop=asyncio.get_event_loop()):
         self.name = name
         self.loop = loop
-        # self.io_pool_exc = ThreadPoolExecutor(max_workers=10)
 
     async def start(self):
         # Server
@@ -75,29 +75,31 @@ class Requestor:
         domains_set = normalize_domains(read_file_to_list('/tmp/domains'))
         blocked_subnets_set = set(read_file_to_list('/tmp/blocked_subnets'))
         resolver = initialize_resolver()
-        queue = asyncio.Queue(maxsize=len(domains_set))
+        queue = janus.Queue(maxsize=len(domains_set))
 
         while True:
-            threads_count = 5
+            # fast but blocking function
+            fill_queue(queue=queue, domains_set=domains_set)
+
+            threads_count = 2
             executor = ThreadPoolExecutor(max_workers=threads_count)
             # you should pass blocking function into executor or start additional
             # event loop inside that function each time it called if you want async behaviour
             #
             # _ is a "throwaway" variable name
             futures = [
-                self.loop.run_in_executor(executor, return_metrics, domains_set, blocked_subnets_set, resolver)
+                self.loop.run_in_executor(executor, return_metrics, queue, blocked_subnets_set, resolver)
                 for _ in range(threads_count)
             ]
             raw_data = await asyncio.gather(*futures)
             data = ''.join(raw_data)
 
-
-            # you don't need to set loop explicitly in avaitable objects because of deprecation warning:
+            # you don't need to set loop explicitly in awaitable objects otherwise you'll get deprecation warning:
             #   DeprecationWarning: The loop argument is deprecated since
             #   Python 3.8, and scheduled for removal in Python 3.10.
             #
             # Read more at: https://stackoverflow.com/a/60315290
-            await asyncio.sleep(60)
+            await asyncio.sleep(10)
 
 
 if __name__ == '__main__':
