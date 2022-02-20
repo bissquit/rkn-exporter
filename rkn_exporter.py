@@ -6,14 +6,11 @@ import janus
 
 from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
-from dns.resolver import Resolver
-from handler import resolve_dns_name, \
-                    check_if_ip_in_subnet, \
-                    return_domain_metrics, \
-                    read_file_to_list, \
+from handler import read_file_to_list, \
                     normalize_domains, \
                     return_metrics, initialize_resolver, fill_queue
 
+# possibly it's good idea to use contextvars here
 data = ''
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", logging.DEBUG),
