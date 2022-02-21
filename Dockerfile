@@ -7,6 +7,7 @@ LABEL description="Prometheus exporter developed to indicate what your domains a
 ARG UID=65534
 
 COPY --chown=$UID:$UID rkn_exporter.py \
+                       handler.py \
                        requirements.txt \
                        /app/
 

@@ -43,8 +43,6 @@ fake_dns_name = 'domain.tld'
 
 @pytest.mark.asyncio
 async def test_resolve_dns_name(mocker):
-    # fake_dns_name = 'domain.tld'
-
     mock_resp = fake_query_result(["1.2.3.4"])
     mocker.patch('aiodns.DNSResolver.query', return_value=mock_resp)
     resp = await resolve_dns_name(dns_name=fake_dns_name)
@@ -64,7 +62,6 @@ async def test_resolve_dns_name(mocker):
 
 
 def test_check_if_ip_in_subnet():
-    # fake_dns_name = 'domain.tld'
     ip, subnet = '192.168.10.1', '192.168.0.0/23'
     ip_in_subnet = check_if_ip_in_subnet(ip=ip, subnet=subnet, dns_name=fake_dns_name)
     assert ip_in_subnet is False
@@ -75,8 +72,6 @@ def test_check_if_ip_in_subnet():
 
 
 def test_return_domain_metrics():
-    # fake_dns_name = 'domain.tld'
-
     ips_list = ['192.168.10.1', '192.168.17.100', '8.8.8.8']
     blocked_subnets_set = {'192.168.0.0/20', '10.0.0.0/8'}
     domain_metrics = return_domain_metrics(dns_name=fake_dns_name,
@@ -87,7 +82,7 @@ def test_return_domain_metrics():
 
 @pytest.mark.asyncio
 def test_read_file_to_list(mocker):
-    file_data_str = 'line\nanother line'
+    file_data_str = 'line\nanother line\n'
     path = '/fake/path'
 
     # creates file-like obj in memory with appropriate methods like read() and write()

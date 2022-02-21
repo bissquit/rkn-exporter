@@ -31,10 +31,6 @@ def parse_args():
                         default=os.getenv("APP_CHECK_INTERVAL", 60),
                         type=int,
                         help='Default time range in seconds to check metrics (default: 60)')
-    parser.add_argument('-f', '--file',
-                        default=os.getenv("APP_FILE_PATH", ''),
-                        type=str,
-                        help='Absolute path to file. Each line is url link (default: Empty string)')
     return parser.parse_args()
 
 
@@ -69,8 +65,8 @@ class Requestor:
 
     async def handler(self):
         global data
-        domains_set = normalize_domains(read_file_to_list('/tmp/domains'))
-        blocked_subnets_set = set(read_file_to_list('/tmp/blocked_subnets'))
+        domains_set = normalize_domains(read_file_to_list('/app/domains.txt'))
+        blocked_subnets_set = set(read_file_to_list('/app/blocked_subnets.txt'))
         resolver = initialize_resolver()
         queue = janus.Queue(maxsize=len(domains_set))
 
@@ -82,8 +78,6 @@ class Requestor:
             executor = ThreadPoolExecutor(max_workers=threads_count)
             # you should pass blocking function into executor or start additional
             # event loop inside that function each time it called if you want async behaviour
-            #
-            # _ is a "throwaway" variable name
             futures = [
                 self.loop.run_in_executor(executor, return_metrics, queue, blocked_subnets_set, resolver)
                 for _ in range(threads_count)
@@ -96,7 +90,7 @@ class Requestor:
             #   Python 3.8, and scheduled for removal in Python 3.10.
             #
             # Read more at: https://stackoverflow.com/a/60315290
-            await asyncio.sleep(10)
+            await asyncio.sleep(3600)
 
 
 if __name__ == '__main__':
