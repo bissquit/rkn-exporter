@@ -11,7 +11,7 @@ from handler import read_file_to_list, \
                     return_metrics, initialize_resolver, fill_queue
 
 # possibly it's good idea to use contextvars here
-data = ''
+data = 'rkn_is_in_processing 1'
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", logging.DEBUG),
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -74,7 +74,10 @@ class Requestor:
             # fast but blocking function
             fill_queue(queue=queue, domains_set=domains_set)
 
-            threads_count = 2
+            # multithreading almost has no effect because the most heavy
+            # task is checking if ip address is in blocked subnets.
+            # Working how to improve performance...
+            threads_count = 1
             executor = ThreadPoolExecutor(max_workers=threads_count)
             # you should pass blocking function into executor or start additional
             # event loop inside that function each time it called if you want async behaviour
