@@ -7,7 +7,7 @@ import janus
 from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
 from handler import read_file_to_list, \
-                    normalize_domains, \
+                    validate_domains, \
                     return_metrics, initialize_resolver, fill_queue
 
 # possibly it's good idea to use contextvars here
@@ -65,7 +65,7 @@ class Requestor:
 
     async def handler(self):
         global data
-        domains_set = normalize_domains(read_file_to_list('/app/inputs/domains.txt'))
+        domains_set = validate_domains(read_file_to_list('/app/inputs/domains.txt'))
         blocked_subnets_set = set(read_file_to_list('/app/inputs/blocked_subnets.txt'))
         resolver = initialize_resolver()
         queue = janus.Queue(maxsize=len(domains_set))
