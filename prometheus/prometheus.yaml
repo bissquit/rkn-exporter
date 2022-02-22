@@ -1,0 +1,5 @@
+scrape_configs:
+  - job_name: rkn-exporter
+    static_configs:
+      - targets:
+        - rkn_exporter:8080
