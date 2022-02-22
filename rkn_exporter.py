@@ -65,8 +65,8 @@ class Requestor:
 
     async def handler(self):
         global data
-        domains_set = normalize_domains(read_file_to_list('/app/domains.txt'))
-        blocked_subnets_set = set(read_file_to_list('/app/blocked_subnets.txt'))
+        domains_set = normalize_domains(read_file_to_list('/app/inputs/domains.txt'))
+        blocked_subnets_set = set(read_file_to_list('/app/inputs/blocked_subnets.txt'))
         resolver = initialize_resolver()
         queue = janus.Queue(maxsize=len(domains_set))
 

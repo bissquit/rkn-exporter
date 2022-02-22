@@ -1,6 +1,5 @@
 __pycache__
 venv
+inputs
 .idea
 .coverage
-domains.txt
-blocked_subnets.txt
