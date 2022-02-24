@@ -2,6 +2,7 @@ import io
 import pytest
 import janus
 import asyncio
+import ipaddress
 # from dns.resolver import Resolver
 
 from typing import Any, List
@@ -10,8 +11,8 @@ from handler import resolve_dns_name, \
                     check_if_ip_in_subnet, \
                     return_domain_metrics, \
                     read_file_to_list, \
-                    normalize_domains, \
-                    fill_queue
+                    validate_domains, \
+                    fill_queue, subnet_to_ips, subnets_to_ips
 
 
 # taken from https://github.com/aio-libs/aiohttp/blob/master/tests/test_resolver.py
@@ -73,10 +74,10 @@ def test_check_if_ip_in_subnet():
 
 def test_return_domain_metrics():
     ips_list = ['192.168.10.1', '192.168.17.100', '8.8.8.8']
-    blocked_subnets_set = {'192.168.0.0/20', '10.0.0.0/8'}
+    blocked_ips_set = {str(ip) for ip in ipaddress.ip_network('192.168.0.0/20')}
     domain_metrics = return_domain_metrics(dns_name=fake_dns_name,
                                            ips_list=ips_list,
-                                           blocked_subnets_set=blocked_subnets_set)
+                                           blocked_ips_set=blocked_ips_set)
     assert domain_metrics == f'rkn_resolved_ip_count{{domain_name="{fake_dns_name}"}} 3\nrkn_resolved_ip_blocked_count{{domain_name="{fake_dns_name}"}} 1\n'
 
 
@@ -105,7 +106,7 @@ def test_normalize_domains_set():
         'google.com',
         'just any string'
     ]
-    domains_set = normalize_domains(domains_list=domains_list)
+    domains_set = validate_domains(domains_list=domains_list)
     assert domains_set == {'mail.ru', 'google.com'}
 
 
@@ -138,3 +139,22 @@ async def test_fill_queue():
 
     assert domains_set == set(result)
     assert [fake_dns_name] == result_with_item
+
+
+def test_subnet_to_ips():
+    valid_ips_set = set({str(ip) for ip in ipaddress.ip_network('192.168.0.0/28')})
+    ips_set = subnet_to_ips('192.168.0.0/28')
+    assert valid_ips_set == ips_set
+
+    valid_ips_set = {'192.168.0.1'}
+    ips_set = subnet_to_ips('192.168.0.1/32')
+    assert valid_ips_set == ips_set
+
+
+def test_subnets_to_ips():
+    valid_full_set_of_ips = set({})
+    for subnet in {'192.168.1.0/28', '172.16.50.32/27'}:
+        for ip in ipaddress.ip_network(subnet):
+            valid_full_set_of_ips.add(str(ip))
+    full_set_of_ips = subnets_to_ips({'192.168.1.0/28', '172.16.50.32/27'})
+    assert valid_full_set_of_ips == full_set_of_ips
