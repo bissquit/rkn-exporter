@@ -7,8 +7,11 @@ services:
     ports:
       - 8080:8080
     environment:
+      - APP_IP=0.0.0.0
       - APP_PORT=8080
-      - APP_CHECK_INTERVAL=60
+      - APP_CHECK_INTERVAL=3600
+      - APP_DOMAINS=/app/inputs/domains.txt
+      - APP_SUBNETS=https://reestr.rublacklist.net/api/v2/ips/json/
       - LOG_LEVEL=DEBUG
     volumes:
       - ./:/app/

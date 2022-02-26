@@ -1,12 +1,15 @@
 import os
 import re
 import time
+import json
 import aiodns
+import aiohttp
 import asyncio
 import janus
 import logging
 import ipaddress
 import threading
+import validators
 from dns.resolver import Resolver
 from dns.exception import DNSException
 
@@ -103,6 +106,7 @@ def subnets_to_ips(subnets_set: set) -> set:
     for subnet in subnets_set:
         for ip in subnet_to_ips(subnet=subnet):
             full_set_of_ips.add(ip)
+    logger.info(f'{len(full_set_of_ips)} ip addresses discovered')
     return full_set_of_ips
 
 
@@ -211,3 +215,59 @@ def fill_queue(queue: janus.Queue[str], domains_set: set) -> None:
         logger.debug(f'Queue filling is finished')
     else:
         logger.error(f'Queue is not empty! Queue with max size {sync_q.maxsize} already has {sync_q.qsize()} element(s)')
+
+
+async def get_data(url: str) -> json:
+    # json.loads() requires str beginning with a JSON document
+    json_body = json.loads('{}')
+
+    async with aiohttp.ClientSession() as client:
+        try:
+            async with client.get(url) as r:
+                status = r.status
+                logger.info(f'Requesting url {url}')
+                logger.debug(f'Full response: {r}')
+                if status == 200:
+                    json_body = await r.json()
+                else:
+                    logger.error(f'Cannot request url {url}! Response status: {status}')
+        except aiohttp.ClientError as error:
+            logger.error(f'Connection error to url {url}: {error}')
+
+    return json_body
+
+
+def ip_converter(subnets_list: list) -> set:
+    blocked_subnets_set = set()
+    invalid_string_counter = 0
+    invalid_strings_list = []
+
+    for item in subnets_list:
+        if validators.ipv6(item):
+            # ipv6 is not supported yet
+            pass
+        elif validators.ipv4(item):
+            # convert ipv4 to subnet
+            ipv4_network = str(ipaddress.ip_network(item))
+            blocked_subnets_set.add(ipv4_network)
+        elif validators.ipv4_cidr(item):
+            blocked_subnets_set.add(item)
+        else:
+            logger.debug(f'This string is neither IPv4/IPv6 address nor IP subnet: {item}')
+            invalid_strings_list.append(item)
+
+    logger.info(f'{len(blocked_subnets_set)} subnets in blocked subnets list')
+    if invalid_string_counter:
+        logger.warning(f'{invalid_string_counter} invalid strings were discovered during input list analyzing')
+        logger.debug(f'Here a full list of all invalid strings of IPv4/IPv6/subnet: {invalid_strings_list}')
+    return blocked_subnets_set
+
+
+async def data_handler(path: str) -> set:
+    """check what is path - a valid url or path to a file"""
+    if validators.url(path):
+        raw_data = await get_data(url=path)
+        blocked_subnets_set = set(ip_converter(raw_data))
+    else:
+        blocked_subnets_set = set(read_file_to_list(path=path))
+    return blocked_subnets_set

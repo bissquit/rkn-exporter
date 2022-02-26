@@ -8,7 +8,7 @@ from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
 from handler import read_file_to_list, \
                     validate_domains, \
-                    return_metrics, initialize_resolver, fill_queue, subnets_to_ips
+                    return_metrics, initialize_resolver, fill_queue, subnets_to_ips, data_handler
 
 # possibly it's good idea to use contextvars here
 data = 'rkn_is_in_processing 1'
@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument('-s', '--blocked_subnets',
                         default=os.getenv("APP_SUBNETS"),
                         type=str,
-                        help='Path to a file with subnets bloked by RKN. One subnet per line (default: No)')
+                        help='Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)')
     return parser.parse_args()
 
 
@@ -80,7 +80,8 @@ class Requestor:
     async def handler(self):
         global data
         domains_set = validate_domains(read_file_to_list(self.args.domains))
-        blocked_subnets_set = set(read_file_to_list(self.args.blocked_subnets))
+
+        blocked_subnets_set = await data_handler(self.args.blocked_subnets)
         blocked_ips_set = subnets_to_ips(blocked_subnets_set)
 
         resolver = initialize_resolver()
@@ -112,7 +113,6 @@ class Requestor:
 if __name__ == '__main__':
     args = parse_args()
     loop = asyncio.get_event_loop()
-    print(f'Address: {args.ip}')
 
     component = Component(loop=loop, args=args)
     loop.run_until_complete(component.start())

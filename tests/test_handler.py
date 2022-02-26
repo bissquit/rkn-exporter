@@ -1,8 +1,12 @@
 import io
+import json
+import yarl
 import pytest
 import janus
 import asyncio
+import aiohttp
 import ipaddress
+from multidict import CIMultiDictProxy, CIMultiDict
 # from dns.resolver import Resolver
 
 from typing import Any, List
@@ -12,7 +16,7 @@ from handler import resolve_dns_name, \
                     return_domain_metrics, \
                     read_file_to_list, \
                     validate_domains, \
-                    fill_queue, subnet_to_ips, subnets_to_ips
+                    fill_queue, subnet_to_ips, subnets_to_ips, get_data, ip_converter, data_handler
 
 
 # taken from https://github.com/aio-libs/aiohttp/blob/master/tests/test_resolver.py
@@ -37,6 +41,55 @@ class MockOpenFile:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+
+async def mock_awaitable_obj(data):
+    return data
+
+
+class MockResponse:
+    def __init__(self, text, status, error_code=None, headers=None):
+        self._text = text
+        self.status = status
+        self.error_code = error_code
+        self.headers = headers
+
+    async def __aexit__(self, exc_type, exc, tb):
+        pass
+
+    async def __aenter__(self):
+        # MultiDictProxy - HTTP Headers and URL query string require specific data structure: multidict.
+        # It behaves mostly like a dict but may have several values for the same key.
+        #
+        # CIMultiDictProxy - Case insensitive version of MultiDictProxy
+        # https://docs.aiohttp.org/en/v0.14.4/multidict.html
+        headers = CIMultiDictProxy(CIMultiDict())
+        # RequestInfo - a data class with request URL and headers from ClientRequest object,
+        # available as ClientResponse.request_info attribute.
+        # https://docs.aiohttp.org/en/stable/client_reference.html#requestinfo
+        #
+        # yarl.URL Represents URL as:
+        # [scheme:]//[user[:password]@]host[:port][/path][?query][#fragment]
+        # https://yarl.readthedocs.io/en/stable/api.html#yarl.URL
+        request_info = aiohttp.RequestInfo(yarl.URL(),
+                                           'GET',
+                                           headers=headers)
+        # based on https://docs.aiohttp.org/en/stable/client_reference.html#hierarchy-of-exceptions
+        if self.error_code == 1:
+            raise aiohttp.ClientResponseError(request_info, ())
+        elif self.error_code == 2:
+            raise aiohttp.ClientConnectionError
+        elif self.error_code == 3:
+            raise aiohttp.ClientPayloadError
+        elif self.error_code == 4:
+            raise aiohttp.InvalidURL(url='http://fake_url')
+        return self
+
+    async def text(self):
+        return self._text
+
+    async def json(self):
+        return json.loads(self._text)
 
 
 fake_dns_name = 'domain.tld'
@@ -98,7 +151,8 @@ def test_read_file_to_list(mocker):
     assert file_data == []
 
 
-def test_normalize_domains_set():
+def test_validate_domains():
+    """is_valid_domain also tested here"""
     domains_list = [
         'mail.ru',
         'mail.ru',
@@ -158,3 +212,59 @@ def test_subnets_to_ips():
             valid_full_set_of_ips.add(str(ip))
     full_set_of_ips = subnets_to_ips({'192.168.1.0/28', '172.16.50.32/27'})
     assert valid_full_set_of_ips == full_set_of_ips
+
+
+@pytest.mark.asyncio
+async def test_get_data(mocker):
+    json_data = {"data": "json_data"}
+    mock_resp = MockResponse(text=json.dumps(json_data),
+                             status=200)
+    mocker.patch('aiohttp.ClientSession.get', return_value=mock_resp)
+    resp = await get_data(url="http://localhost")
+    assert resp == json_data
+
+    mock_resp = MockResponse(text=json.dumps({}),
+                             status=503)
+    mocker.patch('aiohttp.ClientSession.get', return_value=mock_resp)
+    resp = await get_data(url="http://localhost")
+    assert resp == {}
+
+    # emulate client errors
+    for error in range(1, 5):
+        print(error)
+        mock_resp = MockResponse(text=json.dumps({}),
+                                 status=None,
+                                 error_code=error)
+        mocker.patch('aiohttp.ClientSession.get', return_value=mock_resp)
+        resp = await get_data(url="http://localhost")
+        assert resp == {}
+
+
+def test_ip_converter():
+    raw_ips_list = [
+        "2606:4700:3033::681c:1ab0",
+        "178.62.195.161",
+        "104.24.104.128/25",
+        "invalid_string",
+        "   "
+    ]
+    ips_set = ip_converter(raw_ips_list)
+    assert ips_set == {"178.62.195.161/32", "104.24.104.128/25"}
+
+
+@pytest.mark.asyncio
+async def test_data_handler(mocker):
+    raw_ips_list = [
+        '2606:4700:3033::681c:1ab0',
+        '178.62.195.161',
+        '104.24.104.128/25',
+        'invalid_string',
+        '   '
+    ]
+    valid_subnets_set = set()
+    valid_subnets_set.add('178.62.195.161/32')
+    valid_subnets_set.add('104.24.104.128/25')
+
+    mocker.patch('handler.get_data', return_value=await mock_awaitable_obj(raw_ips_list))
+    blocked_subnets_set = await data_handler('http://fake-url.tld/fake-path/fake-json')
+    assert blocked_subnets_set == valid_subnets_set
