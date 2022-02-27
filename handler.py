@@ -106,7 +106,7 @@ def subnets_to_ips(subnets_set: set) -> set:
     for subnet in subnets_set:
         for ip in subnet_to_ips(subnet=subnet):
             full_set_of_ips.add(ip)
-    logger.info(f'{len(full_set_of_ips)} ip addresses discovered')
+    logger.info(f'{len(full_set_of_ips)} blocked ip addresses discovered')
     return full_set_of_ips
 
 
@@ -146,7 +146,8 @@ def validate_domains(domains_list: list) -> set:
     if invalid_domains:
         logger.warning(f'{invalid_domains} invalid domain(s) discovered! Check input file')
     if duplicated_domains:
-        logger.warning(f'{duplicated_domains} duplicated domain(s) found in input file')
+        logger.warning(f'{duplicated_domains} duplicated domain(s) found')
+    logger.info(f'{len(valid_domains_set)} domains discovered')
     return valid_domains_set
 
 
@@ -238,6 +239,7 @@ async def get_data(url: str) -> json:
 
 
 def ip_converter(subnets_list: list) -> set:
+    """Input list may include both ipv4/ipv6 or network subnets. One item per line"""
     blocked_subnets_set = set()
     invalid_string_counter = 0
     invalid_strings_list = []
@@ -266,8 +268,10 @@ def ip_converter(subnets_list: list) -> set:
 async def data_handler(path: str) -> set:
     """check what is path - a valid url or path to a file"""
     if validators.url(path):
+        logger.info(f'Trying to access url {path} to retrieve blocked subnets list')
         raw_data = await get_data(url=path)
         blocked_subnets_set = set(ip_converter(raw_data))
     else:
+        logger.info(f'Trying to access file {path} to retrieve blocked subnets list')
         blocked_subnets_set = set(read_file_to_list(path=path))
     return blocked_subnets_set

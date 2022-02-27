@@ -79,7 +79,9 @@ class Requestor:
 
     async def handler(self):
         global data
-        domains_set = validate_domains(read_file_to_list(self.args.domains))
+        domains_file_path = self.args.domains
+        logger.info(f'Looking for domains in file {domains_file_path}')
+        domains_set = validate_domains(read_file_to_list(domains_file_path))
 
         blocked_subnets_set = await data_handler(self.args.blocked_subnets)
         blocked_ips_set = subnets_to_ips(blocked_subnets_set)
