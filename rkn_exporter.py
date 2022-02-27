@@ -11,7 +11,7 @@ from handler import read_file_to_list, \
                     return_metrics, initialize_resolver, fill_queue, subnets_to_ips, data_handler
 
 # possibly it's good idea to use contextvars here
-data = 'rkn_is_in_processing 1'
+data = 'rkn_computation_success 0'
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", logging.DEBUG),
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -43,6 +43,10 @@ def parse_args():
                         default=os.getenv("APP_SUBNETS"),
                         type=str,
                         help='Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)')
+    parser.add_argument('-t', '--threads_count',
+                        default=os.getenv("APP_THREADS", 10),
+                        type=int,
+                        help='Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)')
     return parser.parse_args()
 
 
@@ -79,7 +83,9 @@ class Requestor:
 
     async def handler(self):
         global data
+        threads_count = self.args.threads_count
         domains_file_path = self.args.domains
+
         logger.info(f'Looking for domains in file {domains_file_path}')
         domains_set = validate_domains(read_file_to_list(domains_file_path))
 
@@ -93,7 +99,7 @@ class Requestor:
             # fast but blocking function
             fill_queue(queue=queue, domains_set=domains_set)
 
-            threads_count = 10
+            logger.info(f'Starting resolving in {threads_count} thread(s)')
             executor = ThreadPoolExecutor(max_workers=threads_count)
             # you should pass blocking function into executor or start additional
             # event loop inside that function each time it called if you want async behaviour
@@ -102,7 +108,9 @@ class Requestor:
                 for _ in range(threads_count)
             ]
             raw_data = await asyncio.gather(*futures)
+            logger.info(f'Resolving is finished')
             data = ''.join(raw_data)
+            data += 'rkn_computation_success 1\n'
 
             # you don't need to set loop explicitly in awaitable objects otherwise you'll get deprecation warning:
             #   DeprecationWarning: The loop argument is deprecated since
