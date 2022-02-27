@@ -67,7 +67,7 @@ def resolve_dns_name_blocking(dns_name: str, resolver: Resolver) -> tuple[list, 
             hosts_list.append(item.to_text())
     except DNSException as error:
         logger.warning(f'Error resolving DNS name: {error}')
-        resolving_errors_count += 1
+        resolving_errors_count = 1
 
     return hosts_list, resolving_errors_count
 
@@ -153,12 +153,18 @@ def validate_domains(domains_list: list) -> set:
 
 def return_domain_metrics(dns_name: str, ips_list: list, blocked_ips_set: set) -> str:
     blocked_ip_count = 0
-    for ip in ips_list:
-        if ip in blocked_ips_set:
-            blocked_ip_count += 1
+    metrics_str = ''
 
-    metrics_str = f'rkn_resolved_ip_count{{domain_name="{dns_name}"}} {len(ips_list)}\n'
-    metrics_str += f'rkn_resolved_ip_blocked_count{{domain_name="{dns_name}"}} {blocked_ip_count}\n'
+    if ips_list:
+        for ip in ips_list:
+            if ip in blocked_ips_set:
+                blocked_ip_count += 1
+        metrics_str = f'rkn_resolved_ip_count{{domain_name="{dns_name}"}} {len(ips_list)}\n'
+        metrics_str += f'rkn_resolved_ip_blocked_count{{domain_name="{dns_name}"}} {blocked_ip_count}\n'
+        metrics_str += f'rkn_resolved_success{{domain_name="{dns_name}"}} 1\n'
+    else:
+        metrics_str += f'rkn_resolved_success{{domain_name="{dns_name}"}} 0\n'
+
     return metrics_str
 
 
@@ -183,22 +189,20 @@ def return_metrics(domains_set_queue: janus.Queue, blocked_ips_set: set, resolve
         # thread between .qsize() and .get() events in the current thread
         try:
             time_queue = time.time()
-            queue_item = domains_set_queue.sync_q.get(block=False)
-            logger.debug(f'Thread id: {thread_id}; Domain {queue_item} retrieved from the queue in {time_diff(time_queue)}s')
+            dns_name = domains_set_queue.sync_q.get(block=False)
+            logger.debug(f'Thread id: {thread_id}; Domain {dns_name} retrieved from the queue in {time_diff(time_queue)}s')
 
             time_resolving = time.time()
             domains_count += 1
-            ips_list, errors = resolve_dns_name_blocking(queue_item, resolver)
+            ips_list, errors = resolve_dns_name_blocking(dns_name, resolver)
             resolving_errors_count += errors
-            logger.debug(f'Thread id: {thread_id}; Domain {queue_item} resolved in {time_diff(time_resolving)}s')
+            logger.debug(f'Thread id: {thread_id}; Domain {dns_name} resolved in {time_diff(time_resolving)}s')
 
-            if ips_list:
-                time_subnets = time.time()
-                metrics += return_domain_metrics(dns_name=queue_item,
-                                                 ips_list=ips_list,
-                                                 blocked_ips_set=blocked_ips_set)
-                logger.debug(f'Thread id: {thread_id}; Checked if ip address(es) of domain {queue_item} are blocked in {time_diff(time_subnets)}s')
-
+            time_subnets = time.time()
+            metrics += return_domain_metrics(dns_name=dns_name,
+                                             ips_list=ips_list,
+                                             blocked_ips_set=blocked_ips_set)
+            logger.debug(f'Thread id: {thread_id}; Checked if ip address(es) of domain {dns_name} are blocked in {time_diff(time_subnets)}s')
             domains_set_queue.sync_q.task_done()
         # empty exception
         except janus.SyncQueueEmpty as _:
