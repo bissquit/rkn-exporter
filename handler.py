@@ -110,7 +110,7 @@ def subnets_to_ips(subnets_set: set) -> set:
     return full_set_of_ips
 
 
-def is_valid_domain(domain_name) -> bool:
+def is_valid_domain(domain_name: str) -> bool:
     is_valid = False
     regex = "^((?!-)[_A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}\\.?$"
     p = re.compile(regex)
