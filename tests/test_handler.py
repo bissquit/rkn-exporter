@@ -6,6 +6,7 @@ import janus
 import asyncio
 import aiohttp
 import ipaddress
+from dns.resolver import Resolver
 from multidict import CIMultiDictProxy, CIMultiDict
 # from dns.resolver import Resolver
 
@@ -143,7 +144,6 @@ def test_return_domain_metrics():
     assert domain_metrics == f'rkn_resolved_success{{domain_name="{fake_dns_name}"}} 0\n'
 
 
-
 @pytest.mark.asyncio
 def test_read_file_to_list(mocker):
     file_data_str = 'line\nanother line\n'
@@ -277,4 +277,8 @@ async def test_data_handler(mocker):
 
     mocker.patch('handler.get_data', return_value=await mock_awaitable_obj(raw_ips_list))
     blocked_subnets_set = await data_handler('http://fake-url.tld/fake-path/fake-json')
+    assert blocked_subnets_set == valid_subnets_set
+
+    mocker.patch('handler.read_file_to_list', return_value=await mock_awaitable_obj(raw_ips_list))
+    blocked_subnets_set = await data_handler('./fake/path/to/file')
     assert blocked_subnets_set == valid_subnets_set

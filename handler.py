@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 #     return hosts_list
 
 
-async def resolve_dns_name(dns_name) -> list[str]:
+async def resolve_dns_name(dns_name: str) -> list[str]:
     hosts_list = []
 
     resolver = aiodns.DNSResolver(loop=asyncio.get_event_loop())
@@ -274,8 +274,9 @@ async def data_handler(path: str) -> set:
     if validators.url(path):
         logger.info(f'Trying to access url {path} to retrieve blocked subnets list')
         raw_data = await get_data(url=path)
-        blocked_subnets_set = set(ip_converter(raw_data))
+        # blocked_subnets_set = set(ip_converter(raw_data))
     else:
         logger.info(f'Trying to access file {path} to retrieve blocked subnets list')
-        blocked_subnets_set = set(read_file_to_list(path=path))
-    return blocked_subnets_set
+        raw_data = read_file_to_list(path=path)
+
+    return set(ip_converter(raw_data))
