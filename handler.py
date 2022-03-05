@@ -260,6 +260,7 @@ def ip_converter(subnets_list: list) -> set:
             blocked_subnets_set.add(item)
         else:
             logger.debug(f'This string is neither IPv4/IPv6 address nor IP subnet: {item}')
+            invalid_string_counter += 1
             invalid_strings_list.append(item)
 
     logger.info(f'{len(blocked_subnets_set)} subnets in blocked subnets list')
