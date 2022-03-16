@@ -6,9 +6,14 @@ import janus
 
 from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
-from handler import read_file_to_list, \
-                    validate_domains, \
-                    return_metrics, initialize_resolver, fill_queue, subnets_to_ips, data_handler
+from dns.resolver import Resolver
+from handler import \
+    read_file_to_list, \
+    validate_domains, \
+    return_metrics, \
+    fill_queue, \
+    subnets_to_ips, \
+    data_handler
 
 # possibly it's good idea to use contextvars here
 data = 'rkn_computation_success 0'
@@ -92,7 +97,11 @@ class Requestor:
         blocked_subnets_set = await data_handler(self.args.blocked_subnets)
         blocked_ips_set = subnets_to_ips(blocked_subnets_set)
 
-        resolver = initialize_resolver()
+        # I'll add variables later
+        resolver = self.initialize_resolver(nameservers=['8.8.8.8'],
+                                            timeout=20,
+                                            lifetime=20,
+                                            retry_servfail=False)
         queue = janus.Queue(maxsize=len(domains_set))
 
         while True:
@@ -118,6 +127,20 @@ class Requestor:
             #
             # Read more at: https://stackoverflow.com/a/60315290
             await asyncio.sleep(self.args.check_interval)
+
+    @staticmethod
+    def initialize_resolver(nameservers: list,
+                            timeout: int,
+                            lifetime: int,
+                            retry_servfail: bool) -> Resolver:
+        resolver = Resolver()
+        resolver.nameservers = nameservers
+        resolver.timeout = timeout
+        # don't set lifetime less than 20s because of
+        # "The resolution lifetime expired" error for some domains
+        resolver.lifetime = lifetime
+        resolver.retry_servfail = retry_servfail
+        return resolver
 
 
 if __name__ == '__main__':

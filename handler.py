@@ -46,17 +46,6 @@ async def resolve_dns_name(dns_name: str) -> list[str]:
     return hosts_list
 
 
-def initialize_resolver() -> Resolver:
-    resolver = Resolver()
-    resolver.nameservers = ['8.8.8.8']
-    resolver.timeout = 20
-    # don't set lifetime less than 20s because of
-    # "The resolution lifetime expired" error for some domains
-    resolver.lifetime = 20
-    resolver.retry_servfail = False
-    return resolver
-
-
 def resolve_dns_name_blocking(dns_name: str, resolver: Resolver) -> tuple[list, int]:
     hosts_list = []
     resolving_errors_count = 0
