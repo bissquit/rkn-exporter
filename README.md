@@ -60,6 +60,8 @@ docker-compose up -d --build --force-recreate
 Use [k8s-handle](https://github.com/2gis/k8s-handle) to deploy exporter to k8s environment:
 
 ```shell script
+cd kubernetes
+
 k8s-handle apply -s env-name
 ```
 
