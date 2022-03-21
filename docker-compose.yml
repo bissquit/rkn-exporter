@@ -7,11 +7,19 @@ services:
     ports:
       - 8080:8080
     environment:
+      - APP_IP=0.0.0.0
       - APP_PORT=8080
-      - APP_CHECK_INTERVAL=60
+      - APP_CHECK_INTERVAL=3600
+      - APP_DOMAINS=/app/inputs/domains.txt
+      # get actual list of blocked ips here:
+      # https://reestr.rublacklist.net/api/v2/ips/json/
+      # It's also available to use this url in the variable below instead of file
+      # rkn-exporter receives file or url
+      - APP_SUBNETS=/app/inputs/blocked_subnets.txt
+      - APP_THREADS_COUNT=10
       - LOG_LEVEL=DEBUG
     volumes:
-      - ./:/app/
+      - ./inputs:/app/inputs
 
   prometheus:
     image: prom/prometheus:v2.28.1

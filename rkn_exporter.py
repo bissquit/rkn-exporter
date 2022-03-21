@@ -6,12 +6,17 @@ import janus
 
 from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
-from handler import read_file_to_list, \
-                    validate_domains, \
-                    return_metrics, initialize_resolver, fill_queue, subnets_to_ips
+from dns.resolver import Resolver
+from handler import \
+    read_file_to_list, \
+    validate_domains, \
+    return_metrics, \
+    fill_queue, \
+    subnets_to_ips, \
+    data_handler
 
 # possibly it's good idea to use contextvars here
-data = 'rkn_is_in_processing 1'
+data = 'rkn_computation_success 0'
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", logging.DEBUG),
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -34,7 +39,7 @@ def parse_args():
     parser.add_argument('-c', '--check_interval',
                         default=os.getenv("APP_CHECK_INTERVAL", 3600),
                         type=int,
-                        help='Default time range in seconds to check metrics (default: 60)')
+                        help='Default time range in seconds to check metrics (default: 3600)')
     parser.add_argument('-d', '--domains',
                         default=os.getenv("APP_DOMAINS"),
                         type=str,
@@ -42,7 +47,11 @@ def parse_args():
     parser.add_argument('-s', '--blocked_subnets',
                         default=os.getenv("APP_SUBNETS"),
                         type=str,
-                        help='Path to a file with subnets bloked by RKN. One subnet per line (default: No)')
+                        help='Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)')
+    parser.add_argument('-t', '--threads_count',
+                        default=os.getenv("APP_THREADS_COUNT", 10),
+                        type=int,
+                        help='Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)')
     return parser.parse_args()
 
 
@@ -79,18 +88,27 @@ class Requestor:
 
     async def handler(self):
         global data
-        domains_set = validate_domains(read_file_to_list(self.args.domains))
-        blocked_subnets_set = set(read_file_to_list(self.args.blocked_subnets))
+        threads_count = self.args.threads_count
+        domains_file_path = self.args.domains
+
+        logger.info(f'Looking for domains in file {domains_file_path}')
+        domains_set = validate_domains(read_file_to_list(domains_file_path))
+
+        blocked_subnets_set = await data_handler(self.args.blocked_subnets)
         blocked_ips_set = subnets_to_ips(blocked_subnets_set)
 
-        resolver = initialize_resolver()
+        # I'll add variables later
+        resolver = self.initialize_resolver(nameservers=['8.8.8.8'],
+                                            timeout=20,
+                                            lifetime=20,
+                                            retry_servfail=False)
         queue = janus.Queue(maxsize=len(domains_set))
 
         while True:
             # fast but blocking function
             fill_queue(queue=queue, domains_set=domains_set)
 
-            threads_count = 10
+            logger.info(f'Starting resolving in {threads_count} thread(s)')
             executor = ThreadPoolExecutor(max_workers=threads_count)
             # you should pass blocking function into executor or start additional
             # event loop inside that function each time it called if you want async behaviour
@@ -99,7 +117,9 @@ class Requestor:
                 for _ in range(threads_count)
             ]
             raw_data = await asyncio.gather(*futures)
+            logger.info(f'Resolving is finished')
             data = ''.join(raw_data)
+            data += 'rkn_computation_success 1\n'
 
             # you don't need to set loop explicitly in awaitable objects otherwise you'll get deprecation warning:
             #   DeprecationWarning: The loop argument is deprecated since
@@ -108,11 +128,24 @@ class Requestor:
             # Read more at: https://stackoverflow.com/a/60315290
             await asyncio.sleep(self.args.check_interval)
 
+    @staticmethod
+    def initialize_resolver(nameservers: list,
+                            timeout: int,
+                            lifetime: int,
+                            retry_servfail: bool) -> Resolver:
+        resolver = Resolver()
+        resolver.nameservers = nameservers
+        resolver.timeout = timeout
+        # don't set lifetime less than 20s because of
+        # "The resolution lifetime expired" error for some domains
+        resolver.lifetime = lifetime
+        resolver.retry_servfail = retry_servfail
+        return resolver
+
 
 if __name__ == '__main__':
     args = parse_args()
     loop = asyncio.get_event_loop()
-    print(f'Address: {args.ip}')
 
     component = Component(loop=loop, args=args)
     loop.run_until_complete(component.start())
