@@ -5,11 +5,14 @@ Exporter receives as input data (both are mandatory):
  - blocked ips list provided by url with json (I recommend to use https://reestr.rublacklist.net/api/v2/ips/json/) or text file (each line is either ip or ip subnet);
  - a list of your domains which need to check.
 
-As output data exporter provides metrics to be scraped by Prometheus. Two metrics per domain. For example:
+As output data exporter provides metrics to be scraped by Prometheus. Three metrics per domain and one metric for computation process. For example:
 
 ```text
 rkn_resolved_ip_count{domain_name="subdomain.domain.tld"} 4
 rkn_resolved_ip_blocked_count{domain_name="subdomain.domain.tld"} 1
+rkn_resolved_success{domain_name="subdomain.domain.tld"} 1
+
+rkn_computation_success 1
 ```
 
 The first metric is a number of ip addresses that domain is resolving in. The second metric is a number of ip addresses that are blocked by RKN agency to access from Russia.
@@ -23,7 +26,7 @@ Multiple installation scenarios are provided. You should create input files. For
 ```text
 mkdir inputs
 echo google.com > inputs/domains.txt
-echo 10.0.0.0/8 > inputs/blocked_subnets.txt
+echo 142.251.0.0/16 > inputs/blocked_subnets.txt
 ```
 
 ### Docker
