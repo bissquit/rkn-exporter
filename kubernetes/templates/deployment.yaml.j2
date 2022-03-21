@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rkn-exporter
+spec:
+  selector:
+    matchLabels:
+      app: rkn-exporter
+  template:
+    metadata:
+      labels:
+        app: rkn-exporter
+      annotations:
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+    spec:
+      containers:
+        - name: rkn-exporter
+          image: bissquit/rkn-exporter:{{rkn_exporter_version}}
+          env:
+            - name: APP_IP
+              value: "{{ rkn_exporter.ip }}"
+            - name: APP_PORT
+              value: "{{ rkn_exporter.port }}"
+            - name: APP_CHECK_INTERVAL
+              value: "{{ rkn_exporter.check_interval }}"
+            - name: APP_DOMAINS
+              value: "{{ rkn_exporter.domains }}"
+            - name: APP_SUBNETS
+              value: "{{ rkn_exporter.subnets }}"
+            - name: APP_THREADS_COUNT
+              value: "{{ rkn_exporter.threads_count }}"
+            - name: LOG_LEVEL
+              value: "{{ rkn_exporter.log_level }}"
+          resources:
+            requests:
+              cpu: 40m
+              memory: 64Mi
+            limits:
+              cpu: 80m
+              memory: 128Mi
+          volumeMounts:
+            - name: inputs
+              mountPath: /app/inputs/
+      enableServiceLinks: false
+      volumes:
+        - name: inputs
+          configMap:
+            name: rkn-exporter-inputs

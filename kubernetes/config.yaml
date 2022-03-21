@@ -1,0 +1,22 @@
+---
+common:
+  # use appropriate variable in your CI/CD
+  k8s_token: "{{ env='K8S_TOKEN' }}"
+  k8s_namespace: monitoring
+
+  # type not only image tag but hash too
+  rkn_exporter_version: 'v1.3-dev@sha256:df72a1eb422ba07fc42686b0bc7198a4c953ddbbefe6ebb0a5c9469d70d24e59'
+  # default settings. You may rewrite them for certain k8s cluster
+  rkn_exporter:
+    ip: "0.0.0.0"
+    port: "8080"
+    check_interval: "3600"
+    domains: "/app/inputs/domains.txt"
+    subnets: "https://reestr.rublacklist.net/api/v2/ips/json/"
+    threads_count: "10"
+    log_level: "DEBUG"
+
+env-name:
+
+  templates:
+  - template: .*.yaml.j2
