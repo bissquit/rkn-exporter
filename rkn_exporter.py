@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument('-c', '--check_interval',
                         default=os.getenv("APP_CHECK_INTERVAL", 3600),
                         type=int,
-                        help='Default time range in seconds to check metrics (default: 60)')
+                        help='Default time range in seconds to check metrics (default: 3600)')
     parser.add_argument('-d', '--domains',
                         default=os.getenv("APP_DOMAINS"),
                         type=str,
@@ -49,7 +49,7 @@ def parse_args():
                         type=str,
                         help='Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)')
     parser.add_argument('-t', '--threads_count',
-                        default=os.getenv("APP_THREADS", 10),
+                        default=os.getenv("APP_THREADS_COUNT", 10),
                         type=int,
                         help='Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)')
     return parser.parse_args()
