@@ -17,7 +17,7 @@ from handler import resolve_dns_name, \
                     return_domain_metrics, \
                     read_file_to_list, \
                     validate_domains, \
-                    fill_queue, subnet_to_ips, subnets_to_ips, get_data, ip_converter, data_handler
+                    fill_queue, subnet_to_ips, subnets_to_ips, get_data, ip_converter, data_handler, normalize_dns
 
 
 # taken from https://github.com/aio-libs/aiohttp/blob/master/tests/test_resolver.py
@@ -282,3 +282,10 @@ async def test_data_handler(mocker):
     mocker.patch('handler.read_file_to_list', return_value=await mock_awaitable_obj(raw_ips_list))
     blocked_subnets_set = await data_handler('./fake/path/to/file')
     assert blocked_subnets_set == valid_subnets_set
+
+
+def test_normalize_dns():
+    input_str = '  8.8.8.8 ,8.8.4.4,  8.8.1.1111'
+
+    valid_dns_list = normalize_dns(input_str)
+    assert valid_dns_list == ['8.8.8.8', '8.8.4.4']

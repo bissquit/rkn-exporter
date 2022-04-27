@@ -270,3 +270,15 @@ async def data_handler(path: str) -> set:
         raw_data = read_file_to_list(path=path)
 
     return set(ip_converter(raw_data))
+
+
+def normalize_dns(dns_str: str) -> list:
+    # removes any whitespaces from string first. Further splits string into a list.
+    # comma is default delimiter.
+    dns_servers_list = (dns_str.replace(' ', '')).split(',')
+
+    valid_list = []
+    for dns_server_str in dns_servers_list:
+        if validators.ipv4(dns_server_str):
+            valid_list.append(dns_server_str)
+    return valid_list
