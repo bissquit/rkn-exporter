@@ -282,4 +282,7 @@ def normalize_dns(dns_str: str) -> list:
         # check if string is a valid ipv4 address
         if validators.ipv4(dns_server_str):
             valid_list.append(dns_server_str)
+        else:
+            logger.debug(f'{dns_server_str} is not a valid ip address of DNS server!')
+    logger.debug(f'DNS server(s) to proceed: {valid_list}')
     return valid_list
