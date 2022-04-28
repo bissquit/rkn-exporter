@@ -17,6 +17,7 @@ services:
       # rkn-exporter receives file or url
       - APP_SUBNETS=/app/inputs/blocked_subnets.txt
       - APP_THREADS_COUNT=10
+      - APP_DNS=8.8.8.8
       - LOG_LEVEL=DEBUG
     volumes:
       - ./inputs:/app/inputs
