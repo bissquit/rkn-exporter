@@ -5,7 +5,7 @@ common:
   k8s_namespace: monitoring
 
   # type not only image tag but hash too
-  rkn_exporter_version: 'v1.3-dev@sha256:df72a1eb422ba07fc42686b0bc7198a4c953ddbbefe6ebb0a5c9469d70d24e59'
+  rkn_exporter_version: 'v1.6@sha256:5dd0d10f97f6fef8df05619405156d05d421454971dabdd40d73e5a04dd36acf'
   # default settings. You may rewrite them for certain k8s cluster
   rkn_exporter:
     ip: "0.0.0.0"
@@ -14,6 +14,7 @@ common:
     domains: "/app/inputs/domains.txt"
     subnets: "https://reestr.rublacklist.net/api/v2/ips/json/"
     threads_count: "10"
+    dns: "8.8.8.8"
     log_level: "DEBUG"
 
 env-name:

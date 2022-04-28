@@ -31,6 +31,8 @@ spec:
               value: "{{ rkn_exporter.subnets }}"
             - name: APP_THREADS_COUNT
               value: "{{ rkn_exporter.threads_count }}"
+            - name: APP_DNS
+              value: "{{ rkn_exporter.dns }}"
             - name: LOG_LEVEL
               value: "{{ rkn_exporter.log_level }}"
           resources:
