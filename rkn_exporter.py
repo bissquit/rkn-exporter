@@ -102,8 +102,7 @@ class Requestor:
         blocked_subnets_set = await data_handler(self.args.blocked_subnets)
         blocked_ips_set = subnets_to_ips(blocked_subnets_set)
 
-        # I'll add variables later
-        resolver = self.initialize_resolver(nameservers=self.args.dns,
+        resolver = self.initialize_resolver(nameservers=normalize_dns(self.args.dns),
                                             timeout=20,
                                             lifetime=20,
                                             retry_servfail=False)
