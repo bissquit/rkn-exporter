@@ -273,12 +273,13 @@ async def data_handler(path: str) -> set:
 
 
 def normalize_dns(dns_str: str) -> list:
-    # removes any whitespaces from string first. Further splits string into a list.
-    # comma is default delimiter.
+    # remove any whitespaces from string first then split string into a list
+    # comma is default delimiter
     dns_servers_list = (dns_str.replace(' ', '')).split(',')
 
     valid_list = []
     for dns_server_str in dns_servers_list:
+        # check if string is a valid ipv4 address
         if validators.ipv4(dns_server_str):
             valid_list.append(dns_server_str)
     return valid_list
