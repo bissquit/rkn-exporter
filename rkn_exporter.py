@@ -54,7 +54,7 @@ def parse_args():
                         type=int,
                         help='Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)')
     parser.add_argument('--dns',
-                        default=normalize_dns(os.getenv("APP_DNS", '8.8.8.8')),
+                        default=os.getenv("APP_DNS", '8.8.8.8'),
                         type=str,
                         help='DNS servers (default: 8.8.8.8)')
     return parser.parse_args()
