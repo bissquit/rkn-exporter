@@ -5,7 +5,7 @@ common:
   k8s_namespace: monitoring
 
   # type not only image tag but hash too
-  rkn_exporter_version: 'v1.6@sha256:5dd0d10f97f6fef8df05619405156d05d421454971dabdd40d73e5a04dd36acf'
+  rkn_exporter_version: 'v1.6@sha256:65b475b4e3102f901f9d8d5aba1239bf18bc3e268009f6cf528f7d276fe73c14'
   # default settings. You may rewrite them for certain k8s cluster
   rkn_exporter:
     ip: "0.0.0.0"
