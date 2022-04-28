@@ -43,6 +43,7 @@ PORT=8080 ; docker run -it --rm --name rkn-exporter \
   -e APP_DOMAINS=/app/inputs/domains.txt \
   -e APP_SUBNETS=/app/inputs/blocked_subnets.txt \
   -e APP_THREADS_COUNT=10 \
+  -e APP_DNS=8.8.8.8 \
   -e LOG_LEVEL=DEBUG \
   bissquit/rkn-exporter:latest
 ```
@@ -92,6 +93,7 @@ This command is not needed if you configure env with `make env`.
 |-d, --domains|`APP_DOMAINS`|Path to a file with domains to check. One domain per line (default: No)|
 |-s, --blocked_subnets|`APP_SUBNETS`|Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)|
 |-t, --threads_count|`APP_THREADS_COUNT`|Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)|
+|--dns|`APP_DNS`|DNS servers (default: 8.8.8.8)|
 |-|`LOG_LEVEL`|Log level based on Python [logging](https://docs.python.org/3/library/logging.html) module. expected values: DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)|
 
 

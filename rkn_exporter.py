@@ -13,7 +13,8 @@ from handler import \
     return_metrics, \
     fill_queue, \
     subnets_to_ips, \
-    data_handler
+    data_handler, \
+    normalize_dns
 
 # possibly it's good idea to use contextvars here
 data = 'rkn_computation_success 0'
@@ -52,6 +53,10 @@ def parse_args():
                         default=os.getenv("APP_THREADS_COUNT", 10),
                         type=int,
                         help='Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)')
+    parser.add_argument('--dns',
+                        default=os.getenv("APP_DNS", '8.8.8.8'),
+                        type=str,
+                        help='DNS servers (default: 8.8.8.8)')
     return parser.parse_args()
 
 
@@ -97,8 +102,7 @@ class Requestor:
         blocked_subnets_set = await data_handler(self.args.blocked_subnets)
         blocked_ips_set = subnets_to_ips(blocked_subnets_set)
 
-        # I'll add variables later
-        resolver = self.initialize_resolver(nameservers=['8.8.8.8'],
+        resolver = self.initialize_resolver(nameservers=normalize_dns(self.args.dns),
                                             timeout=20,
                                             lifetime=20,
                                             retry_servfail=False)
