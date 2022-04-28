@@ -37,10 +37,10 @@ spec:
               value: "{{ rkn_exporter.log_level }}"
           resources:
             requests:
-              cpu: 40m
+              cpu: 100m
               memory: 64Mi
             limits:
-              cpu: 80m
+              cpu: 200m
               memory: 128Mi
           volumeMounts:
             - name: inputs
