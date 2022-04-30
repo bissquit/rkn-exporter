@@ -140,20 +140,22 @@ def validate_domains(domains_list: list) -> set:
     return valid_domains_set
 
 
-def return_domain_metrics(dns_name: str, ips_list: list, blocked_ips_set: set) -> str:
+def return_domain_metrics(dns_name: str, ips_list: list, blocked_ips_set: set, ip_in_label: bool) -> str:
     blocked_ip_count = 0
     metrics_str = ''
 
-    if ips_list:
-        for ip in ips_list:
-            if ip in blocked_ips_set:
-                blocked_ip_count += 1
-        metrics_str = f'rkn_resolved_ip_count{{domain_name="{dns_name}"}} {len(ips_list)}\n'
-        metrics_str += f'rkn_resolved_ip_blocked_count{{domain_name="{dns_name}"}} {blocked_ip_count}\n'
-        metrics_str += f'rkn_resolved_success{{domain_name="{dns_name}"}} 1\n'
-    else:
-        metrics_str += f'rkn_resolved_success{{domain_name="{dns_name}"}} 0\n'
+    for ip in ips_list:
+        blocked = False
+        if ip in blocked_ips_set:
+            blocked_ip_count += 1
+            blocked = True
+        if ip_in_label:
+            metrics_str += f'rkn_resolved_ip_blocked{{domain_name="{dns_name}",ip="{ip}"}} {1 if blocked else 0}\n'
 
+    metrics_str += f'rkn_resolved_ip_count{{domain_name="{dns_name}"}} {len(ips_list)}\n'
+    metrics_str += f'rkn_resolved_ip_blocked_count{{domain_name="{dns_name}"}} {blocked_ip_count}\n'
+
+    metrics_str += f'rkn_resolved_success{{domain_name="{dns_name}"}} {1 if ips_list else 0}\n'
     return metrics_str
 
 
@@ -161,7 +163,7 @@ def time_diff(time_old: float) -> float:
     return round(time.time() - time_old, 5)
 
 
-def return_metrics(domains_set_queue: janus.Queue, blocked_ips_set: set, resolver: Resolver) -> str:
+def return_metrics(domains_set_queue: janus.Queue, blocked_ips_set: set, resolver: Resolver, ip_in_label: bool) -> str:
     # check in what thread we are
     thread_id = threading.get_ident()
     logger.debug(f'Thread id: {thread_id}; Starting thread...')
@@ -190,7 +192,8 @@ def return_metrics(domains_set_queue: janus.Queue, blocked_ips_set: set, resolve
             time_subnets = time.time()
             metrics += return_domain_metrics(dns_name=dns_name,
                                              ips_list=ips_list,
-                                             blocked_ips_set=blocked_ips_set)
+                                             blocked_ips_set=blocked_ips_set,
+                                             ip_in_label=ip_in_label)
             logger.debug(f'Thread id: {thread_id}; Checked if ip address(es) of domain {dns_name} are blocked in {time_diff(time_subnets)}s')
             domains_set_queue.sync_q.task_done()
         # empty exception
