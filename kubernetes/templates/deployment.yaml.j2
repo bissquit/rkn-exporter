@@ -18,6 +18,11 @@ spec:
       containers:
         - name: rkn-exporter
           image: bissquit/rkn-exporter:{{rkn_exporter_version}}
+          #command:
+          #  - 'python3'
+          #  - 'rkn_exporter.py'
+          ## be careful with this option because it extremely increases cardinality
+          #  - '--ip_in_label'
           env:
             - name: APP_IP
               value: "{{ rkn_exporter.ip }}"
