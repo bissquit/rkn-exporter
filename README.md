@@ -101,15 +101,15 @@ This command is not needed if you configure env with `make env`.
 
 |Command line argument|Environment variable|Description|
 | ----------- | ----------- | ----------- |
-|-h, --help|-|show help message|
-|-i, --ip|`APP_IP`|IP address (default: 0.0.0.0)|
-|-p, --port|`APP_PORT`|Port to be listened (default: 8080)|
-|-c, --check_interval|`APP_CHECK_INTERVAL`|Default time range in seconds to check metrics (default: 3600)|
-|-d, --domains|`APP_DOMAINS`|Path to a file with domains to check. One domain per line (default: No)|
-|-s, --blocked_subnets|`APP_SUBNETS`|Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)|
-|-t, --threads_count|`APP_THREADS_COUNT`|Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)|
-|--dns|`APP_DNS`|DNS servers (default: 8.8.8.8)|
-|--ip_in_label|-|Enable putting ip into labels. Not recommended! (default: False) Read more about this feature below|
+|`-h`, `--help`|-|show help message|
+|`-i`, `--ip`|`APP_IP`|IP address (default: 0.0.0.0)|
+|`-p`, `--port`|`APP_PORT`|Port to be listened (default: 8080)|
+|`-c`, `--check_interval`|`APP_CHECK_INTERVAL`|Default time range in seconds to check metrics (default: 3600)|
+|`-d`, `--domains`|`APP_DOMAINS`|Path to a file with domains to check. One domain per line (default: No)|
+|`-s`, `--blocked_subnets`|`APP_SUBNETS`|Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)|
+|`-t`, `--threads_count`|`APP_THREADS_COUNT`|Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)|
+|`--dns`|`APP_DNS`|DNS servers (default: 8.8.8.8)|
+|`--ip_in_label`|-|Enable putting ip into labels. Not recommended! (default: False) Read more about this feature below|
 |-|`LOG_LEVEL`|Log level based on Python [logging](https://docs.python.org/3/library/logging.html) module. expected values: DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)|
 
 **Note:** `--ip_in_label` is experimental feature. Don't use it in production because it extremely increases cardinality: each uniq set of metrics and their labels produce a time series. Because you have potentially unlimited amount of IP addresses you'll receive coresponding amount of time series. Read more at [Cardinality is key](https://www.robustperception.io/cardinality-is-key) article.
