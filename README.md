@@ -10,12 +10,24 @@ As output data exporter provides metrics to be scraped by Prometheus. Three metr
 ```text
 rkn_resolved_ip_count{domain_name="subdomain.domain.tld"} 4
 rkn_resolved_ip_blocked_count{domain_name="subdomain.domain.tld"} 1
+rkn_resolved_ip_blocked{domain_name="subdomain.domain.tld",ip="1.2.3.4"} 0
+rkn_resolved_ip_blocked{domain_name="subdomain.domain.tld",ip="1.2.3.5"} 0
+rkn_resolved_ip_blocked{domain_name="subdomain.domain.tld",ip="1.2.3.6"} 1
+rkn_resolved_ip_blocked{domain_name="subdomain.domain.tld",ip="1.2.3.7"} 0
 rkn_resolved_success{domain_name="subdomain.domain.tld"} 1
 
 rkn_computation_success 1
 ```
 
-The first metric is a number of ip addresses that domain is resolving in. The second metric is a number of ip addresses that are blocked by RKN agency to access from Russia.
+Metrics descriptions:
+
+|Metric name|Description|Note|
+| ----------- | ----------- | ----------- |
+|`rkn_resolved_ip_count`|Number of ip addresses that domain is resolving in||
+|`rkn_resolved_ip_blocked_count`|Number of ip addresses that are blocked by RKN agency to access from Russia||
+|`rkn_resolved_ip_blocked`|IP address is blocked (True/False)|Only available with `--ip_in_label` option. Be careful! Read more about this feature below|
+|`rkn_resolved_success`|Domain name successfully resolved (True/False)||
+|`rkn_computation_success`|Metric computation success (True/False)||
 
 Metrics are available at `/metrics` path.
 
@@ -45,7 +57,10 @@ PORT=8080 ; docker run -it --rm --name rkn-exporter \
   -e APP_THREADS_COUNT=10 \
   -e APP_DNS=8.8.8.8 \
   -e LOG_LEVEL=DEBUG \
-  bissquit/rkn-exporter:latest
+  bissquit/rkn-exporter:latest \
+    "python3" \
+    "rkn_exporter.py" \
+    "--ip_in_label"
 ```
 
 ### Docker-compose
@@ -86,16 +101,18 @@ This command is not needed if you configure env with `make env`.
 
 |Command line argument|Environment variable|Description|
 | ----------- | ----------- | ----------- |
-|-h, --help|-|show help message|
-|-i, --ip|`APP_IP`|IP address (default: 0.0.0.0)|
-|-p, --port|`APP_PORT`|Port to be listened (default: 8080)|
-|-c, --check_interval|`APP_CHECK_INTERVAL`|Default time range in seconds to check metrics (default: 3600)|
-|-d, --domains|`APP_DOMAINS`|Path to a file with domains to check. One domain per line (default: No)|
-|-s, --blocked_subnets|`APP_SUBNETS`|Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)|
-|-t, --threads_count|`APP_THREADS_COUNT`|Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)|
-|--dns|`APP_DNS`|DNS servers (default: 8.8.8.8)|
+|`-h`, `--help`|-|show help message|
+|`-i`, `--ip`|`APP_IP`|IP address (default: 0.0.0.0)|
+|`-p`, `--port`|`APP_PORT`|Port to be listened (default: 8080)|
+|`-c`, `--check_interval`|`APP_CHECK_INTERVAL`|Default time range in seconds to check metrics (default: 3600)|
+|`-d`, `--domains`|`APP_DOMAINS`|Path to a file with domains to check. One domain per line (default: No)|
+|`-s`, `--blocked_subnets`|`APP_SUBNETS`|Path to a file with subnets bloked by RKN. One subnet per line. Or url with json list (default: No)|
+|`-t`, `--threads_count`|`APP_THREADS_COUNT`|Threads count to parallelize computation. Is useful when DNS resolving is slow (default: 10)|
+|`--dns`|`APP_DNS`|DNS servers (default: 8.8.8.8)|
+|`--ip_in_label`|-|Enable putting ip into labels. Not recommended! (default: False) Read more about this feature below|
 |-|`LOG_LEVEL`|Log level based on Python [logging](https://docs.python.org/3/library/logging.html) module. expected values: DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)|
 
+**Note:** `--ip_in_label` is experimental feature. Don't use it in production because it extremely increases cardinality: each uniq set of metrics and their labels produce a time series. Because you have potentially unlimited amount of IP addresses you'll receive coresponding amount of time series. Read more at [Cardinality is key](https://www.robustperception.io/cardinality-is-key) article.
 
 ## Dev environment
 

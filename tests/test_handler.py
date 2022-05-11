@@ -132,16 +132,32 @@ def test_return_domain_metrics():
     ips_list = ['192.168.10.1', '192.168.17.100', '8.8.8.8']
     domain_metrics = return_domain_metrics(dns_name=fake_dns_name,
                                            ips_list=ips_list,
-                                           blocked_ips_set=blocked_ips_set)
+                                           blocked_ips_set=blocked_ips_set,
+                                           ip_in_label=False)
     assert domain_metrics == f'rkn_resolved_ip_count{{domain_name="{fake_dns_name}"}} 3\n' \
+                             f'rkn_resolved_ip_blocked_count{{domain_name="{fake_dns_name}"}} 1\n' \
+                             f'rkn_resolved_success{{domain_name="{fake_dns_name}"}} 1\n'
+
+    ips_list = ['192.168.10.1', '192.168.17.100', '8.8.8.8']
+    domain_metrics = return_domain_metrics(dns_name=fake_dns_name,
+                                           ips_list=ips_list,
+                                           blocked_ips_set=blocked_ips_set,
+                                           ip_in_label=True)
+    assert domain_metrics == f'rkn_resolved_ip_blocked{{domain_name="{fake_dns_name}",ip="192.168.10.1"}} 1\n' \
+                             f'rkn_resolved_ip_blocked{{domain_name="{fake_dns_name}",ip="192.168.17.100"}} 0\n' \
+                             f'rkn_resolved_ip_blocked{{domain_name="{fake_dns_name}",ip="8.8.8.8"}} 0\n' \
+                             f'rkn_resolved_ip_count{{domain_name="{fake_dns_name}"}} 3\n' \
                              f'rkn_resolved_ip_blocked_count{{domain_name="{fake_dns_name}"}} 1\n' \
                              f'rkn_resolved_success{{domain_name="{fake_dns_name}"}} 1\n'
 
     ips_list = []
     domain_metrics = return_domain_metrics(dns_name=fake_dns_name,
                                            ips_list=ips_list,
-                                           blocked_ips_set=blocked_ips_set)
-    assert domain_metrics == f'rkn_resolved_success{{domain_name="{fake_dns_name}"}} 0\n'
+                                           blocked_ips_set=blocked_ips_set,
+                                           ip_in_label=False)
+    assert domain_metrics == f'rkn_resolved_ip_count{{domain_name="{fake_dns_name}"}} 0\n' \
+                             f'rkn_resolved_ip_blocked_count{{domain_name="{fake_dns_name}"}} 0\n' \
+                             f'rkn_resolved_success{{domain_name="{fake_dns_name}"}} 0\n'
 
 
 @pytest.mark.asyncio

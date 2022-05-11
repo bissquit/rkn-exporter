@@ -57,6 +57,13 @@ def parse_args():
                         default=os.getenv("APP_DNS", '8.8.8.8'),
                         type=str,
                         help='DNS servers (default: 8.8.8.8)')
+    # 'store_true' and 'store_false' - These are special cases of 'store_const' used for storing
+    # the values True and False respectively. In addition, they create default values of False
+    # and True respectively
+    # https://docs.python.org/3/library/argparse.html#action
+    parser.add_argument('--ip_in_label',
+                        action='store_true',
+                        help='Enable putting ip into labels. Not recommended! (default: False)')
     return parser.parse_args()
 
 
@@ -117,7 +124,7 @@ class Requestor:
             # you should pass blocking function into executor or start additional
             # event loop inside that function each time it called if you want async behaviour
             futures = [
-                self.loop.run_in_executor(executor, return_metrics, queue, blocked_ips_set, resolver)
+                self.loop.run_in_executor(executor, return_metrics, queue, blocked_ips_set, resolver, args.ip_in_label)
                 for _ in range(threads_count)
             ]
             raw_data = await asyncio.gather(*futures)
